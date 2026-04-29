@@ -104,6 +104,40 @@ body::after {
   50% { transform: scale(1.04); }
 }
 
+@keyframes sceneFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-10px, -8px, 0); }
+  50% { transform: translate3d(0, -16px, 0); }
+  75% { transform: translate3d(10px, -8px, 0); }
+}
+
+@keyframes stackOrbit {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  25% { transform: translate3d(-8px, -10px, 0) rotate(-0.6deg) scale(1.01); }
+  50% { transform: translate3d(0, -18px, 0) rotate(0deg) scale(1.015); }
+  75% { transform: translate3d(8px, -10px, 0) rotate(0.6deg) scale(1.01); }
+}
+
+@keyframes layerBob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -18px, 0); }
+}
+
+@keyframes layerGlow {
+  0%, 100% { box-shadow: 0 16px 34px rgba(66,32,167,0.24); }
+  50% { box-shadow: 0 26px 56px rgba(96,50,255,0.42); }
+}
+
+@keyframes nodeDrift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -12px, 0); }
+}
+
+@keyframes auraPulse {
+  0%, 100% { opacity: 0.28; transform: scale(0.96); }
+  50% { opacity: 0.5; transform: scale(1.04); }
+}
+
 @keyframes pageEnter {
   from { opacity: 0; transform: translateY(14px) scale(0.995); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -290,6 +324,28 @@ body::after {
   overflow: hidden;
   background: radial-gradient(circle at 42% 55%, rgba(98,44,233,0.18), transparent 52%);
   min-height: 100%;
+  animation: sceneFloat 6.5s ease-in-out infinite;
+  transition: transform 180ms ease-out;
+  transform: perspective(1200px) rotateX(0deg) rotateY(0deg);
+}
+
+.hero-right::before {
+  content: "";
+  position: absolute;
+  inset: 12% 18% 10% 18%;
+  background: radial-gradient(circle, rgba(118, 71, 255, 0.22), transparent 58%);
+  filter: blur(28px);
+  opacity: 0.35;
+  animation: auraPulse 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.hero-visual-stack {
+  position: absolute;
+  inset: 4% 2% 0 2%;
+  animation: stackOrbit 7s ease-in-out infinite;
+  transform-origin: 50% 58%;
+  will-change: transform;
 }
 
 .layer {
@@ -298,7 +354,7 @@ body::after {
   aspect-ratio: 1 / 1;
   border-radius: 26px;
   border: 1px solid rgba(168,158,201,0.55);
-  transform: rotate(-31deg);
+  transform: rotate(-31deg) translate3d(0, 0, 0);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -307,37 +363,50 @@ body::after {
   font-size: 1.05rem;
   letter-spacing: 0.08em;
   color: rgba(208,201,234,0.8);
+  backdrop-filter: blur(3px);
+  animation: layerBob 7.5s ease-in-out infinite;
+  will-change: transform, opacity;
+  transition: transform 180ms ease-out;
 }
 
 .layer-top {
-  top: 86px;
+  top: 72px;
   left: 50%;
-  margin-left: -112px;
-  opacity: 0.65;
+  margin-left: -96px;
+  opacity: 0.4;
+  animation-duration: 7.8s;
+  animation-delay: -2.2s;
 }
 
 .layer-mid {
-  top: 210px;
+  top: 188px;
   left: 50%;
-  margin-left: -114px;
+  margin-left: -98px;
   border-color: rgba(120,90,210,0.7);
   color: rgba(177,147,255,0.9);
+  opacity: 0.7;
+  animation-duration: 6.8s;
+  animation-delay: -1s;
 }
 
 .layer-main {
-  top: 326px;
+  top: 294px;
   left: 50%;
-  margin-left: -114px;
+  margin-left: -100px;
   background: linear-gradient(180deg, rgba(22,19,38,0.9), rgba(20,18,31,0.95));
   border-color: #7e43ff;
   color: #cdb3ff;
   box-shadow: 0 16px 34px rgba(66,32,167,0.44);
+  animation:
+    layerBob 5.8s ease-in-out infinite,
+    layerGlow 3.4s ease-in-out infinite;
 }
 
 .node {
   position: absolute;
-  width: 82px;
+  min-width: 82px;
   height: 38px;
+  padding: 0 1rem;
   border-radius: 999px;
   border: 1px solid #7f44ff;
   display: flex;
@@ -347,11 +416,15 @@ body::after {
   background: rgba(56,34,108,0.72);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.78rem;
+  box-shadow: 0 0 18px rgba(112, 63, 255, 0.12);
+  animation: nodeDrift 4.4s ease-in-out infinite;
+  will-change: transform;
+  transition: transform 180ms ease-out;
 }
 
-.node-js { left: 25%; bottom: 96px; }
-.node-css { left: 28%; top: 214px; }
-.node-html { right: 22%; bottom: 98px; }
+.node-js { left: 18%; bottom: 78px; animation-delay: -0.5s; }
+.node-css { right: 18%; top: 182px; animation-delay: -1.3s; }
+.node-html { right: 12%; bottom: 82px; animation-delay: -2s; }
 
 .topics-page {
   width: 100%;

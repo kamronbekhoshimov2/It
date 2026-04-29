@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ─── Question Data ────────────────────────────────────────────────────────────
 const TOPICS = [
@@ -149,9 +149,10 @@ const TOPICS = [
   },
 ];
 
-const TELEGRAM_BOT_TOKEN = "8139948146:AAE4dlFU019RS2PJskOXgE4o3RNNw8vkAoU";
-const TELEGRAM_CHAT_IDS = ["6562416815", "5826696977"];
 const LETTERS = ["A", "B", "C", "D"];
+const TELEGRAM_RESULT_API = `${import.meta.env.VITE_API_BASE_URL || ""}/api/telegram/result`;
+const TELEGRAM_BOT_TOKEN = "";
+const TELEGRAM_CHAT_IDS = [];
 const TOPIC_ICON_BY_ID = {
   html: "/html.png",
   css: "/css.png",
@@ -169,7 +170,7 @@ function shuffle(arr) {
   return a;
 }
 
-async function sendResultToTelegram(userData, testResult) {
+async function SEND_RESULT_TO_TELEGRAM_LEGACY(userData, testResult) {
   const { firstName, lastName, group } = userData;
   const { topic, score, total, timeTaken } = testResult;
   const pct = Math.round((score / total) * 100);
@@ -200,10 +201,83 @@ async function sendResultToTelegram(userData, testResult) {
   }
 }
 
+async function sendResultToTelegramServer(userData, testResult) {
+  const { firstName, lastName, group } = userData;
+  const { topic, score, total, timeTaken } = testResult;
+
+  try {
+    const res = await fetch(TELEGRAM_RESULT_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        group,
+        topic,
+        score,
+        total,
+        timeTaken,
+      }),
+    });
+    const data = await res.json();
+    return Boolean(data?.ok);
+  } catch {
+    return false;
+  }
+}
+
 // ─── Styles ────────────────────────────────────────────────────────────────────
 // ─── Components ────────────────────────────────────────────────────────────────
 
-function HomeHero({ onSelect, onOpenTopics }) {
+function HomeHero({ onOpenTopics }) {
+  const visualRef = useRef(null);
+  const layerRefs = useRef([]);
+  const nodeRefs = useRef([]);
+
+  function handleVisualMove(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    const mx = Number(x.toFixed(3));
+    const my = Number(y.toFixed(3));
+
+    if (visualRef.current) {
+      visualRef.current.style.transform =
+        `perspective(1200px) rotateX(${my * -10}deg) rotateY(${mx * 12}deg)`;
+    }
+
+    layerRefs.current.forEach((layer, index) => {
+      if (!layer) return;
+      const depth = (index + 1) * 12;
+      layer.style.transform =
+        `rotate(-31deg) translate3d(${mx * depth}px, ${my * depth}px, 0)`;
+    });
+
+    nodeRefs.current.forEach((node, index) => {
+      if (!node) return;
+      const dir = index === 1 ? -1 : 1;
+      const offsetX = mx * (18 + index * 6) * dir;
+      const offsetY = my * (12 + index * 4);
+      node.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+    });
+  }
+
+  function handleVisualLeave() {
+    if (visualRef.current) {
+      visualRef.current.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg)";
+    }
+
+    layerRefs.current.forEach((layer) => {
+      if (!layer) return;
+      layer.style.transform = "rotate(-31deg) translate3d(0, 0, 0)";
+    });
+
+    nodeRefs.current.forEach((node) => {
+      if (!node) return;
+      node.style.transform = "translate3d(0, 0, 0)";
+    });
+  }
+
   return (
     <section className="home-shell home-hero-shell">
       <div className="promo-bar">
@@ -225,7 +299,7 @@ function HomeHero({ onSelect, onOpenTopics }) {
           <h1>Frontend bazaviy testlar</h1>
           <p>HTML, CSS, JavaScript, DOM va React bo'yicha bilimlaringizni sinang.</p>
           <div className="hero-actions">
-            <button className="hero-btn hero-btn-primary" onClick={() => onSelect(TOPICS[0])}>
+            <button className="hero-btn hero-btn-primary" onClick={onOpenTopics}>
               Testni boshlash
             </button>
             <button type="button" className="hero-btn hero-btn-ghost" onClick={onOpenTopics}>
@@ -234,13 +308,21 @@ function HomeHero({ onSelect, onOpenTopics }) {
           </div>
         </div>
 
-        <div className="hero-right" aria-hidden="true">
-          <div className="layer layer-top">SASS</div>
-          <div className="layer layer-mid">STYL</div>
-          <div className="layer layer-main">JSX</div>
-          <div className="node node-js">.JS</div>
-          <div className="node node-css">.CSS</div>
-          <div className="node node-html">.HTML</div>
+        <div
+          className="hero-right"
+          ref={visualRef}
+          aria-hidden="true"
+          onMouseMove={handleVisualMove}
+          onMouseLeave={handleVisualLeave}
+        >
+          <div className="hero-visual-stack">
+            <div className="layer layer-top" ref={(el) => { layerRefs.current[0] = el; }}>HTML</div>
+            <div className="layer layer-mid" ref={(el) => { layerRefs.current[1] = el; }}>TEST</div>
+            <div className="layer layer-main" ref={(el) => { layerRefs.current[2] = el; }}>IT TEST</div>
+            <div className="node node-js" ref={(el) => { nodeRefs.current[0] = el; }}>.JS</div>
+            <div className="node node-css" ref={(el) => { nodeRefs.current[1] = el; }}>SITE</div>
+            <div className="node node-html" ref={(el) => { nodeRefs.current[2] = el; }}>TG BOT</div>
+          </div>
         </div>
       </div>
     </section>
@@ -276,10 +358,10 @@ function TopicsSection({ onSelect }) {
   );
 }
 
-function HomePage({ onSelect, onOpenTopics }) {
+function HomePage({ onOpenTopics }) {
   return (
     <div className="home">
-      <HomeHero onSelect={onSelect} onOpenTopics={onOpenTopics} />
+      <HomeHero onOpenTopics={onOpenTopics} />
     </div>
   );
 }
@@ -350,7 +432,6 @@ function QuizPage({ topic, user, onFinish }) {
   const [score, setScore] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [answered, setAnswered] = useState(false);
-  const [selected, setSelected] = useState(null); // index
   const [optState, setOptState] = useState({}); // { idx: 'correct' | 'wrong' }
 
   useEffect(() => {
@@ -370,7 +451,6 @@ function QuizPage({ topic, user, onFinish }) {
   function selectOption(idx) {
     if (answered) return;
     setAnswered(true);
-    setSelected(idx);
     const isCorrect = idx === q.correctShuffledIndex;
     if (isCorrect) {
       setScore((sc) => sc + 1);
@@ -387,7 +467,6 @@ function QuizPage({ topic, user, onFinish }) {
     if (nextIdx < total) {
       setCurrent(nextIdx);
       setAnswered(false);
-      setSelected(null);
       setOptState({});
     } else {
       onFinish({
@@ -454,9 +533,9 @@ function ResultPage({ topic, user, result, onHome }) {
   const emoji = pct >= 90 ? "🏆" : pct >= 70 ? "🎉" : pct >= 50 ? "👍" : "😔";
 
   useEffect(() => {
-    sendResultToTelegram(user, { topic: topic.name, score, total, timeTaken })
+    sendResultToTelegramServer(user, { topic: topic.name, score, total, timeTaken })
       .then((ok) => setTgState(ok ? "sent" : "fail"));
-  }, []);
+  }, [score, timeTaken, topic.name, total, user]);
 
   return (
     <div className="result-wrap">
@@ -522,7 +601,6 @@ export default function App() {
       <div className="app">
         {page === "home" && (
           <HomePage
-            onSelect={(t) => { setTopic(t); setPage("reg"); }}
             onOpenTopics={() => setPage("topics")}
           />
         )}
