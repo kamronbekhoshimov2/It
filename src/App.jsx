@@ -220,8 +220,12 @@ async function sendResultToTelegramServer(userData, testResult) {
       }),
     });
     const data = await res.json();
+    if (!data?.ok) {
+      console.error("Telegram result API error:", data?.error || "Unknown API error");
+    }
     return Boolean(data?.ok);
-  } catch {
+  } catch (error) {
+    console.error("Telegram result API request failed:", error);
     return false;
   }
 }
