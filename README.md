@@ -1,21 +1,15 @@
 # My Quiz
 
-Frontend test natijalarini Telegram ga yuborish uchun bu loyiha endi alohida backend server bilan ishlaydi.
+Frontend test natijalari to'g'ridan-to'g'ri Telegram Bot API'ga yuboriladi.
 
 ## Ishga tushirish
 
 1. `.env.example` dan nusxa olib `.env` yarating.
-2. `.env` ichiga o'zingizning `TELEGRAM_BOT_TOKEN` va `TELEGRAM_CHAT_IDS` qiymatlarini yozing.
-3. Backendni ishga tushiring:
-
-```bash
-npm run server
-```
-
-4. Frontendni alohida terminalda ishga tushiring:
+2. `.env` ichiga o'zingizning `VITE_TELEGRAM_BOT_TOKEN` va `VITE_TELEGRAM_CHAT_IDS` qiymatlarini yozing.
+3. Frontendni ishga tushiring:
 
 ```bash
 npm run dev
 ```
 
-Vite dev server `/api` so'rovlarini avtomatik ravishda `http://localhost:3001` ga yuboradi.
+Vercelga joylaganda ham shu ikkita environment variable qo'shilishi kerak.

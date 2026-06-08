@@ -150,9 +150,11 @@ const TOPICS = [
 ];
 
 const LETTERS = ["A", "B", "C", "D"];
-const TELEGRAM_RESULT_API = `${import.meta.env.VITE_API_BASE_URL || ""}/api/telegram/result`;
-const TELEGRAM_BOT_TOKEN = "";
-const TELEGRAM_CHAT_IDS = [];
+const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_IDS = (import.meta.env.VITE_TELEGRAM_CHAT_IDS || "")
+  .split(",")
+  .map((chatId) => chatId.trim())
+  .filter(Boolean);
 const TOPIC_ICON_BY_ID = {
   html: "/html.png",
   css: "/css.png",
@@ -201,31 +203,59 @@ async function SEND_RESULT_TO_TELEGRAM_LEGACY(userData, testResult) {
   }
 }
 
-async function sendResultToTelegramServer(userData, testResult) {
+async function sendResultToTelegramDirect(userData, testResult) {
   const { firstName, lastName, group } = userData;
   const { topic, score, total, timeTaken } = testResult;
+  const percent = Math.round((score / total) * 100);
+  const grade =
+    percent >= 90 ? "A (Ajoyib)"
+    : percent >= 75 ? "B (Yaxshi)"
+    : percent >= 55 ? "C (Qoniqarli)"
+    : "F (Qoniqarsiz)";
+
+  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_CHAT_IDS.length === 0) {
+    console.error("Telegram env missing: VITE_TELEGRAM_BOT_TOKEN yoki VITE_TELEGRAM_CHAT_IDS yo'q");
+    return false;
+  }
+
+  const text = [
+    "FRONTEND TEST NATIJASI",
+    "",
+    `Ism: ${firstName} ${lastName}`.trim(),
+    `Guruh: ${group}`,
+    `Bo'lim: ${topic}`,
+    "",
+    `Ball: ${score}/${total}`,
+    `Foiz: ${percent}%`,
+    `Baho: ${grade}`,
+    `Vaqt: ${timeTaken}`,
+    "",
+    `Sana: ${new Date().toLocaleString("uz-UZ")}`,
+  ].join("\n");
+
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
   try {
-    const res = await fetch(TELEGRAM_RESULT_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        firstName,
-        lastName,
-        group,
-        topic,
-        score,
-        total,
-        timeTaken,
-      }),
-    });
-    const data = await res.json();
-    if (!data?.ok) {
-      console.error("Telegram result API error:", data?.error || "Unknown API error");
-    }
-    return Boolean(data?.ok);
+    const results = await Promise.all(
+      TELEGRAM_CHAT_IDS.map(async (chatId) => {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: chatId, text }),
+        });
+        const data = await res.json();
+
+        if (!data?.ok) {
+          console.error("Telegram sendMessage error:", data?.description || data);
+        }
+
+        return Boolean(data?.ok);
+      })
+    );
+
+    return results.every(Boolean);
   } catch (error) {
-    console.error("Telegram result API request failed:", error);
+    console.error("Telegram sendMessage request failed:", error);
     return false;
   }
 }
@@ -537,7 +567,7 @@ function ResultPage({ topic, user, result, onHome }) {
   const emoji = pct >= 90 ? "🏆" : pct >= 70 ? "🎉" : pct >= 50 ? "👍" : "😔";
 
   useEffect(() => {
-    sendResultToTelegramServer(user, { topic: topic.name, score, total, timeTaken })
+    sendResultToTelegramDirect(user, { topic: topic.name, score, total, timeTaken })
       .then((ok) => setTgState(ok ? "sent" : "fail"));
   }, [score, timeTaken, topic.name, total, user]);
 
